@@ -2,16 +2,13 @@
 import Banner from "./TaskBoardComponents/Banner";
 import TaskManagement from "./TaskBoardComponents/TaskManagementSystem";
 
-
-const TaskBoard = () => {
-  
+const TaskBoard = () => { // This gets the tasks from the loader
 
   return (
-
-   <div>
-     <Banner></Banner>
-     <TaskManagement></TaskManagement>
-   </div>
+    <div>
+      <Banner />
+      <TaskManagement />  {/* Pass tasks as a prop */}
+    </div>
   );
 };
 
