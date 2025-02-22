@@ -38,7 +38,7 @@ const SignUp = () => {
         createUser(email, password, name, photo)
             .then(() => {
 
-                fetch('http://localhost:5000/user', {
+                fetch('https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userDetails),

@@ -5,41 +5,39 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-ki
 import TaskItem from "./TaskItem";
 
 const TaskManagement = () => {
-  const [tasks, setTasks] = useState({
-    "To-Do": [],
-    "In Progress": [],
-    Done: [],
-  });
-  const [loading, setLoading] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: "",
-    description: "",
-    category: "To-Do",
-  });
-  const [editingTask, setEditingTask] = useState(null); // State for editing a task
+    const [tasks, setTasks] = useState({
+        "To-Do": [],
+        "In Progress": [],
+        Done: [],
+    });
+    const [loading, setLoading] = useState(false);
+    const [newTask, setNewTask] = useState({
+        title: "",
+        description: "",
+        category: "To-Do",
+        dueDate: "", // Added due date field
+    });
+    const [editingTask, setEditingTask] = useState(null);
 
-  // Fetch tasks from backend
-  useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get("http://localhost:5000/tasks");
-        const fetchedTasks = response.data;
-
-        setTasks({
-          "To-Do": fetchedTasks.filter((task) => task.category === "To-Do"),
-          "In Progress": fetchedTasks.filter((task) => task.category === "In Progress"),
-          Done: fetchedTasks.filter((task) => task.category === "Done"),
-        });
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, []);
+    useEffect(() => {
+        const fetchTasks = async () => {
+            setLoading(true);
+            try {
+                const response = await axios.get("https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks");
+                const fetchedTasks = response.data;
+                setTasks({
+                    "To-Do": fetchedTasks.filter((task) => task.category === "To-Do"),
+                    "In Progress": fetchedTasks.filter((task) => task.category === "In Progress"),
+                    Done: fetchedTasks.filter((task) => task.category === "Done"),
+                });
+            } catch (error) {
+                console.error("Error fetching tasks:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTasks();
+    }, []);
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
@@ -59,7 +57,7 @@ const TaskManagement = () => {
         [sourceCategory]: newOrderedTasks,
       }));
 
-      axios.patch(`http://localhost:5000/tasks/order`, {
+      axios.patch(`https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks/order`, {
         category: sourceCategory,
         tasks: newOrderedTasks.map((task) => task._id),
       });
@@ -77,7 +75,7 @@ const TaskManagement = () => {
         [destinationCategory]: destinationTasks,
       }));
 
-      axios.patch(`http://localhost:5000/tasks/move`, {
+      axios.patch(`https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks/move`, {
         taskId: movedTask._id,
         category: destinationCategory,
         tasks: destinationTasks.map((task) => task._id),
@@ -95,33 +93,24 @@ const TaskManagement = () => {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
-    const { title, description, category } = newTask;
-    if (!title || !description) {
-      alert("Title and description are required");
-      return;
+    const { title, description, category, dueDate } = newTask;
+    if (!title || !description || !dueDate) {
+        alert("All fields are required");
+        return;
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/tasks", {
-        title,
-        description,
-        category,
-      });
-
-      setTasks((prevTasks) => ({
-        ...prevTasks,
-        [category]: [...prevTasks[category], response.data],
-      }));
-
-      setNewTask({ title: "", description: "", category: "To-Do" });
+        const response = await axios.post("https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks", { title, description, category, dueDate });
+        setTasks((prev) => ({ ...prev, [category]: [...prev[category], response.data] }));
+        setNewTask({ title: "", description: "", category: "To-Do", dueDate: "" });
     } catch (error) {
-      console.error("Error adding task:", error);
+        console.error("Error adding task:", error);
     }
-  };
+};
 
   const handleDeleteTask = async (taskId) => {
     try {
-      await axios.delete(`http://localhost:5000/tasks/${taskId}`);
+      await axios.delete(`https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks/${taskId}`);
       setTasks((prevTasks) => {
         const updatedTasks = { ...prevTasks };
         Object.keys(updatedTasks).forEach((category) => {
@@ -145,43 +134,59 @@ const TaskManagement = () => {
     });
   };
 
- const handleUpdateTask = async (e) => {
-  e.preventDefault();
-  const { title, description, category } = newTask;
-  if (!title || !description) {
-    alert("Title and description are required");
-    return;
-  }
-
-  try {
-    const response = await axios.put(`http://localhost:5000/tasks/${editingTask._id}`, {
-      title,
-      description,
-      category,
-    });
-
-    // Update UI with updated task
-    setTasks((prevTasks) => {
-      const updatedTasks = { ...prevTasks };
-      Object.keys(updatedTasks).forEach((category) => {
-        updatedTasks[category] = updatedTasks[category].map((task) =>
-          task._id === editingTask._id ? response.data : task
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+    const { title, description, category, dueDate } = newTask; // Include dueDate in destructuring
+    if (!title || !description) {
+      alert("Title and description are required");
+      return;
+    }
+  
+    try {
+      const updatedTask = {
+        ...editingTask,
+        title,
+        description,
+        category,
+        dueDate, // Add dueDate to the updated task object
+      };
+  
+      // Optimistically update UI before making API call
+      setTasks((prevTasks) => {
+        const updatedTasks = { ...prevTasks };
+  
+        // Remove the task from the old category
+        updatedTasks[editingTask.category] = updatedTasks[editingTask.category].filter(
+          (task) => task._id !== editingTask._id
         );
+  
+        // Add the task to the new category
+        updatedTasks[category] = [...updatedTasks[category], updatedTask];
+  
+        return updatedTasks;
       });
-      return updatedTasks;
-    });
-
-    // Clear editing state
-    setEditingTask(null);
-    setNewTask({ title: "", description: "", category: "To-Do" });
-  } catch (error) {
-    console.error("Error updating task:", error);
-  }
-};
+  
+      // Send update request to backend
+      await axios.put(`https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks/${editingTask._id}`, {
+        title,
+        description,
+        category,
+        dueDate, // Include dueDate in the request body
+      });
+  
+      // Clear editing state
+      setEditingTask(null);
+      setNewTask({ title: "", description: "", category: "To-Do", dueDate: "" }); // Reset dueDate
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
+  };
+  
+  
 
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="bg-gray-100 p-8">
       <h1 className="text-4xl font-semibold mb-8 text-center text-blue-600">Task Management</h1>
 
       {/* Add/Edit Task Form */}
@@ -206,6 +211,12 @@ const TaskManagement = () => {
             placeholder="Task Description"
             className="input input-bordered w-full max-w-xs"
           />
+            <input
+             type="date"
+              name="dueDate"
+               value={newTask.dueDate} 
+               onChange={handleInputChange} 
+               className="input input-bordered w-full max-w-xs" />
           <select
             name="category"
             value={newTask.category}

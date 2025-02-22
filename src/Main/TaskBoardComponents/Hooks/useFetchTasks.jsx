@@ -12,7 +12,7 @@ const useFetchTasks = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("http://localhost:5000/tasks");
+      const response = await axios.get("https://job-task-server-g4yrv3pgg-ahsanadip7s-projects.vercel.app/tasks");
       const fetchedTasks = response.data;
 
       setTasks({
